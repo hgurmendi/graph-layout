@@ -4,5 +4,6 @@ Graph Layout in Python using the Fruchterman-Reingold algorithm.
 Uses:
  * pygame     http://www.pygame.org/
  * pyeuclid   https://code.google.com/p/pyeuclid/
-# Usage
+
+Usage:
 $./graph-layout.py <graph-file>
