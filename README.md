@@ -1,2 +1,2 @@
 # graph-layout
-Graph Drawing by Force-Directed placement
+Graph Layout in Python using the Fruchterman-Reingold algorithm.
