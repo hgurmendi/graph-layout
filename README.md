@@ -6,4 +6,4 @@ Uses:
  * pyeuclid   https://code.google.com/p/pyeuclid/
 
 Usage:
-$./graph-layout.py <graph-file>
+$./graph-layout.py graph-file
