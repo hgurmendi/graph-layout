@@ -7,3 +7,5 @@ Uses:
 
 Usage:
 $./graph-layout.py graph-file
+
+Screenshots: http://imgur.com/a/8Szup
