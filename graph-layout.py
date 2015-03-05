@@ -11,7 +11,7 @@ Dependencias:
 
 '''
 
-import sys, pygame, random, math, os
+import sys, pygame, random, math, os, argparse
 from pygame.locals import *
 from euclid import *
 
@@ -84,6 +84,8 @@ class LayoutGraph():
         self.fps_last = 0
         self.fps = 0
         
+        self.text_visible = True
+        
         self.step_timer = 0
         self.iters_counter = 0
         
@@ -129,23 +131,24 @@ class LayoutGraph():
                     sys.exit(0)
                 elif event.key == K_r:
                     self.reset()
-                    self.draw_frame()
+                elif event.key == K_h:
+                    self.text_visible = not self.text_visible
                 elif event.key == K_RETURN:
                     self.step()
-    
-    def draw_frame(self):
-        V, E = self.grafo
-        
-        self.screen.fill(self.BLACK)
-        
+                    
+    def draw_text(self):
         # Dibuja texto 
         text_title = self.font.render("Complementos de Matematica I - Graph Layout", 1, self.WHITE)
         text_file = self.font.render("file: " + os.path.realpath(self.filename), 1, self.WHITE)
         text_fps = self.font.render("fps: " + str(self.fps) + " (max " + str(self.MAX_FPS) + ")", 1, self.WHITE)
         text_iters = self.font.render("iteraciones: " + str(self.iters_counter) + "/" + str(self.iters), 1, self.WHITE)
         text_temp = self.font.render("temperatura: " + str(self.temperature), 1, self.WHITE)
+        text_c_a = self.font.render("cte atraccion: " + str(self.c_a), 1, self.WHITE)
+        text_c_r = self.font.render("cte repulsion: " + str(self.c_r), 1, self.WHITE)
+        text_refresh = self.font.render("refresh: " + str(self.refresh) + " ms", 1, self.WHITE)
 
         text_commands = self.font.render("Comandos: ", 1, self.WHITE)
+        text_h_key = self.font.render("H - Ocultar texto", 1, self.WHITE)
         text_r_key = self.font.render("R - Reiniciar layout", 1, self.WHITE)
         text_esc_key = self.font.render("ESC - Salir", 1, self.WHITE)
         text_enter_key = self.font.render("ENTER - Realizar una iteracion", 1, self.WHITE)
@@ -165,28 +168,44 @@ class LayoutGraph():
         next_line += text_iters.get_height()
         self.screen.blit(text_temp, (5, next_line))
         
+        next_line += text_temp.get_height()
+        self.screen.blit(text_c_a, (5, next_line))
+        
+        next_line += text_c_a.get_height()
+        self.screen.blit(text_c_r, (5, next_line))
+        
+        next_line += text_c_r.get_height()
+        self.screen.blit(text_refresh, (5, next_line))
+        
         next_line = self.SCREEN_HEIGHT - 5 - text_r_key.get_height()
         self.screen.blit(text_r_key, (5, next_line))
+
+        next_line -= text_h_key.get_height()
+        self.screen.blit(text_h_key, (5, next_line))
         
         next_line -= text_esc_key.get_height()
         self.screen.blit(text_esc_key, (5, next_line))
         
         next_line -= text_enter_key.get_height()
         self.screen.blit(text_enter_key, (5, next_line))
-
+        
         next_line -= text_commands.get_height()
         self.screen.blit(text_commands, (5, next_line))
+    
+    def draw_graph(self):
+        V, E = self.grafo
         
         # Dibuja el centro de la pantalla.
-        pygame.draw.aaline(self.screen,
-            self.BLUE,
-            (self.SCREEN_WIDTH / 2, self.SCREEN_HEIGHT / 2 - 10),
-            (self.SCREEN_WIDTH / 2, self.SCREEN_HEIGHT / 2 + 10))
-        
-        pygame.draw.aaline(self.screen,
-            self.BLUE,
-            (self.SCREEN_WIDTH / 2 - 10, self.SCREEN_HEIGHT / 2),
-            (self.SCREEN_WIDTH / 2 + 10, self.SCREEN_HEIGHT / 2))
+        if self.text_visible:
+            pygame.draw.aaline(self.screen,
+                self.BLUE,
+                (self.SCREEN_WIDTH / 2, self.SCREEN_HEIGHT / 2 - 10),
+                (self.SCREEN_WIDTH / 2, self.SCREEN_HEIGHT / 2 + 10))
+            
+            pygame.draw.aaline(self.screen,
+                self.BLUE,
+                (self.SCREEN_WIDTH / 2 - 10, self.SCREEN_HEIGHT / 2),
+                (self.SCREEN_WIDTH / 2 + 10, self.SCREEN_HEIGHT / 2))
             
         # Dibuja las aristas.
         for edge in E:
@@ -212,15 +231,31 @@ class LayoutGraph():
             label_pos.centery = self.pos[node].y
             self.screen.blit(self.label[node], label_pos)
             
+    def draw_frame(self):
+        # Dibuja el cuadro
+        self.screen.fill(self.BLACK)
+        
+        if self.text_visible:
+            self.draw_text()
+            
+        self.draw_graph()
+        
         pygame.display.flip()
         
     def layout(self):
         while True:
+            # Administrar los eventos.
             self.handle_events()
             
+            # Administrar las iteraciones.
+            if self.iters_counter < self.iters:
+                tmp = pygame.time.get_ticks()
+                if tmp - self.step_timer > self.refresh:
+                    self.step()
+                    self.step_timer = tmp
+                   
             # Limitar los cuadros dibujados por segundo.
             if pygame.time.get_ticks() - self.fps_last >= self.TICKS_PER_FRAME:
-                # Dibuja el cuadro
                 self.draw_frame()
                 
                 self.fps_count += 1
@@ -231,13 +266,6 @@ class LayoutGraph():
                     self.fps = self.fps_count
                     self.fps_count = 0
                     self.fps_timer = tmp
-                
-                # Realizar una iteracion adicional.
-                if self.iters_counter < self.iters:
-                    tmp = pygame.time.get_ticks()
-                    if tmp - self.step_timer > self.refresh:
-                        self.step()
-                        self.step_timer = tmp
                 
                 self.fps_last = pygame.time.get_ticks()
     
@@ -346,25 +374,43 @@ class LayoutGraph():
         self.temperature *= self.TEMPERATURE_FACTOR
         
         self.iters_counter += 1
-            
+         
 def main():
-    if len(sys.argv) > 1:
-        input_file = sys.argv[1]
-    else:
-        print "USAGE: " + sys.argv[0] + " <graph-file>"
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Graph drawing by force-directed placement in Python')
     
-    G = read_graph(input_file)
+    parser.add_argument('file')
     
-    # Las constantes de atraccion y repulsion fueron determinadas empiricamente.
-    layout_gr = LayoutGraph(filename=input_file,
+    parser.add_argument('-iters',
+                        type=int,
+                        help='amount of iterations (default 100)',
+                        default=100)
+                        
+    parser.add_argument('-c-a',
+                        type=float,
+                        help='attraction constant (default 0.03)',
+                        default=0.03)
+                        
+    parser.add_argument('-c-r',
+                        type=float,
+                        help='repulsion constant (default 2500)',
+                        default=2500.0)
+                        
+    parser.add_argument('-refresh',
+                        type=int,
+                        help='time per iteration in miliseconds (default 100)',
+                        default=100)
+    
+    args = parser.parse_args()  
+    
+    G = read_graph(args.file)
+    
+    layout_gr = LayoutGraph(filename=args.file,
         grafo=G,
-        iters=150,
-        refresh=100,
-        c_a=0.01,
-        c_r=3500.0
-        )
-    
+        iters=args.iters,
+        refresh=args.refresh,
+        c_a=args.c_a,
+        c_r=args.c_r)
+        
     layout_gr.layout()
 
 if __name__ == "__main__":
